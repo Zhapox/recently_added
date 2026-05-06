@@ -1,4 +1,4 @@
-# Recently Added Plugin for Volumio – v0.4.1
+# Recently Added Plugin for Volumio – v0.4.2
 
 > **⚠️ Disclaimer**
 >
@@ -34,6 +34,10 @@ Adds a "Recently Added" entry to Volumio's Browse menu showing albums and artist
 
 ![Both sections](docs/images/sections.png)
 
+**Album drill-down**
+
+![Album drill-down](docs/images/tracks.png)
+
 **Artist drill-down**
 
 ![Artist drill-down](docs/images/artist.png)
@@ -41,6 +45,12 @@ Adds a "Recently Added" entry to Volumio's Browse menu showing albums and artist
 ---
 
 ## Changelog
+
+### v0.4.2
+
+**New feature:**
+
+1. **Album rows show the artist as a secondary column.**  Each album in the Recently Added list now displays the artist beside the album title — matching Volumio's stock Albums view.  The artist is resolved per-album using a new `albumArtistOf` helper: prefers a dominant `AlbumArtist` tag, falls back to per-track `Artist`, and intelligently detects compilations.  Albums tagged as compilations (whether the `AlbumArtist` is literally "Various Artists" / "VA" / "Various", or just `*`, or missing entirely while per-track Artist values vary) are all normalized to the literal label *Various Artists* — matching Volumio's stock convention, which leaves this term in English regardless of UI language (it's a quasi-proper-noun in music tagging conventions like iTunes and MusicBrainz).  Genuinely untagged albums omit the secondary column rather than carrying a stray empty value.
 
 ### v0.4.1
 
@@ -139,11 +149,11 @@ ssh volumio@volumio.local
 mkdir -p /data/plugins/music_service/recently_added
 
 # 3. Transfer the tarball (run this on your PC, not the Pi)
-scp recently_added-v0.4.1.tar volumio@volumio.local:/tmp/
+scp recently_added-v0.4.2.tar volumio@volumio.local:/tmp/
 
 # 4. Extract on the Pi
 cd /data/plugins/music_service
-tar xf /tmp/recently_added-v0.4.1.tar
+tar xf /tmp/recently_added-v0.4.2.tar
 
 # 5. Run the installer
 cd /data/plugins/music_service/recently_added

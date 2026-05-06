@@ -779,12 +779,26 @@ ControllerRecentlyAdded.prototype._artistsSection = function (days, entries) {
  *
  * Title prefers the Album tag (M4) and falls back to the folder name
  * when no track in the bucket has an Album tag.
+ *
+ * The `artist` field becomes the dimmer secondary column on the row in
+ * Volumio's list view (matching the stock Albums view).  We resolve it
+ * via grouping.albumArtistOf().  The 'Various Artists' sentinel is
+ * displayed verbatim — Volumio's stock Albums view does the same, and
+ * "Various Artists" is a quasi-proper-noun in music tagging conventions
+ * (iTunes, MusicBrainz, etc.) that's typically left untranslated even
+ * in non-English UIs.  Localizing it would create cross-tile
+ * inconsistency without meaningful benefit.
+ *
+ * Omitted entirely when no meaningful artist info is present, so rows
+ * for genuinely-untagged albums don't carry a stray empty column.
  */
 ControllerRecentlyAdded.prototype._albumItem = function (album) {
   var folderName = album.path.split('/').pop();
-  var title = grouping.albumTitleOf(album.entries || [], folderName);
+  var entries = album.entries || [];
+  var title = grouping.albumTitleOf(entries, folderName);
+  var artist = grouping.albumArtistOf(entries);  // string or null
 
-  return {
+  var item = {
     service: 'mpd',
     type: 'folder',
     title: title,
@@ -795,6 +809,8 @@ ControllerRecentlyAdded.prototype._albumItem = function (album) {
               encodeURIComponent(this._mpdRelativeToAbsolute(album.path)) +
               '&icon=folder-o&metadata=false'
   };
+  if (artist) item.artist = artist;
+  return item;
 };
 
 /**
