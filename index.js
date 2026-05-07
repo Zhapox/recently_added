@@ -865,18 +865,199 @@ ControllerRecentlyAdded.prototype._mpdRelativeToAbsolute = function (mpdRel) {
 };
 
 /**
- * Required by the music_service plugin contract.  Returns empty because
- * we never own playable URIs — every track we surface is forwarded to
- * MPD via `music-library/...` URIs handled by MPD's own controller.
- * If this is ever called on one of our URIs, it indicates a routing
- * bug elsewhere; we log a warning but return cleanly.  (M9)
+ * Required by the music_service plugin contract.  Called by Volumio
+ * when the user clicks an inline play / add-to-queue button on one of
+ * our items, or when something else needs to expand one of our URIs
+ * into its constituent tracks.
+ *
+ * URI shapes we own:
+ *   recently_added                       → root tile, no tracks (no-op)
+ *   recently_added/window/<n>d           → all tracks in window
+ *   recently_added/window/<n>d/artist/X  → tracks in window, filtered to X
+ *
+ * Album URIs (music-library/...) are NOT owned by us — Volumio routes
+ * those to MPD's controller, whose explodeUri does the right thing for
+ * album folders.  This function should never be called with one of
+ * those URIs; we log a warning and return empty if it happens.
+ *
+ * Returns a kew promise resolving to an array of Volumio queue items.
+ * On any error we resolve to [] rather than rejecting — the practical
+ * UX of "play button does nothing" is better than a generic error
+ * toast, and the underlying problem is logged for diagnosis.
  */
 ControllerRecentlyAdded.prototype.explodeUri = function (uri) {
-  if (uri && uri.indexOf(PLUGIN_URI + '/') === 0) {
-    this.logger.warn('RecentlyAdded: explodeUri called on browse URI ' + uri);
+  var self = this;
+  var defer = libQ.defer();
+
+  if (!uri || uri === PLUGIN_URI) {
+    // Root tile: clicking play on it would mean "play everything I've
+    // added in 90 days", which is rarely what someone actually wants.
+    // Leaving as no-op matches Volumio's own behavior for source tiles.
+    defer.resolve([]);
+    return defer.promise;
   }
-  return libQ.resolve([]);
+
+  // Order matters: artist drill-down is more specific than the bare
+  // window URI and must be tested first.
+  var artistMatch = uri.match(/^recently_added\/window\/(\d+)d\/artist\/(.+)$/);
+  if (artistMatch) {
+    var aDays = parseInt(artistMatch[1], 10);
+    var artistName = decodeURIComponent(artistMatch[2]);
+    self._explodeWindow(aDays, artistName)
+      .then(function (tracks) { defer.resolve(tracks); })
+      .catch(function (err) {
+        self.logger.error('RecentlyAdded: explodeUri (artist) failed: ' +
+          (err && err.message ? err.message : err));
+        defer.resolve([]);
+      });
+    return defer.promise;
+  }
+
+  var winMatch = uri.match(/^recently_added\/window\/(\d+)d$/);
+  if (winMatch) {
+    var days = parseInt(winMatch[1], 10);
+    self._explodeWindow(days, null)
+      .then(function (tracks) { defer.resolve(tracks); })
+      .catch(function (err) {
+        self.logger.error('RecentlyAdded: explodeUri (window) failed: ' +
+          (err && err.message ? err.message : err));
+        defer.resolve([]);
+      });
+    return defer.promise;
+  }
+
+  // music-library/... URIs aren't ours; log and bail safely.
+  self.logger.warn('RecentlyAdded: explodeUri called on unknown URI: ' + uri);
+  defer.resolve([]);
+  return defer.promise;
 };
+
+/**
+ * Build a flat track list for play / add-to-queue actions.
+ *
+ * Tracks are ordered by:
+ *   1. Album recency (most recent first — same order as the browse
+ *      view, so visual order matches play order).
+ *   2. Disc number within an album (multi-disc albums play disc 1
+ *      before disc 2 rather than interleaving by track number).
+ *   3. Track number within a disc.
+ *   4. Filename as final tie-breaker.
+ *
+ * When `artistFilter` is non-null, only entries whose artistOf matches
+ * are included — used for the artist drill-down play button.  Filtering
+ * happens at the per-track level (before grouping) so a Pink Floyd play
+ * button on a compilation album yields just the Pink Floyd tracks, not
+ * the whole compilation.
+ *
+ * Returns a native Promise resolving to an array of queue items.
+ */
+ControllerRecentlyAdded.prototype._explodeWindow = function (days, artistFilter) {
+  var self = this;
+
+  if (!self.mpdClient) {
+    return Promise.reject(new Error('MPD client not initialized'));
+  }
+
+  var sinceDate = new Date(Date.now() - days * DAY_MS);
+  return self.mpdClient.findModifiedSince(sinceDate).then(function (entries) {
+    var filtered = entries;
+    if (artistFilter !== null) {
+      filtered = entries.filter(function (e) {
+        return grouping.artistOf(e) === artistFilter;
+      });
+    }
+
+    var albums = grouping.groupByAlbum(filtered);
+    var tracks = [];
+
+    for (var i = 0; i < albums.length; i++) {
+      var album = albums[i];
+      var sorted = album.entries.slice().sort(function (a, b) {
+        var da = grouping.discNumber(a);
+        var db = grouping.discNumber(b);
+        if (da !== db) return da - db;
+        var ta = grouping.trackNumber(a);
+        var tb = grouping.trackNumber(b);
+        if (ta !== tb) return ta - tb;
+        return (a.file || '').localeCompare(b.file || '');
+      });
+
+      for (var j = 0; j < sorted.length; j++) {
+        tracks.push(self._trackQueueItem(sorted[j], album));
+      }
+    }
+
+    if (typeof self.logger.debug === 'function') {
+      self.logger.debug('RecentlyAdded: explodeUri assembled ' + tracks.length +
+        ' track(s) from ' + albums.length + ' album(s)' +
+        (artistFilter ? ' (artist="' + artistFilter + '")' : '') +
+        ' for window=' + days + 'd');
+    }
+
+    return tracks;
+  });
+};
+
+/**
+ * Construct a single queue item for an MPD track entry.
+ *
+ * The `uri` is the bare MPD-relative path (e.g. "INTERNAL/Music/Album X/
+ * 01.flac") — that's what MPD's `add` command consumes, and it's what
+ * gets routed back to MPD's controller for playback via `service: 'mpd'`.
+ *
+ * Album-level fields (album title, albumartist, albumart) are derived
+ * from the parent album bucket using the same helpers that drive the
+ * browse view, so a track played from Recently Added shows the same
+ * metadata as the same track played from anywhere else in Volumio.
+ */
+ControllerRecentlyAdded.prototype._trackQueueItem = function (entry, album) {
+  var folderName = album.path.split('/').pop();
+  var albumTitle = grouping.albumTitleOf(album.entries, folderName);
+  var albumArtist = grouping.albumArtistOf(album.entries);
+
+  var title = entry.Title || basenameNoExt(entry.file);
+  var perTrackArtist = entry.Artist || albumArtist || '';
+
+  var item = {
+    service: 'mpd',
+    uri: entry.file,
+    type: 'track',
+    name: title,
+    title: title,
+    artist: perTrackArtist,
+    album: albumTitle,
+    albumart: '/albumart?path=' +
+              encodeURIComponent(this._mpdRelativeToAbsolute(album.path)) +
+              '&icon=folder-o&metadata=false'
+  };
+
+  if (albumArtist) item.albumartist = albumArtist;
+
+  var n = grouping.trackNumber(entry);
+  if (isFinite(n)) item.tracknumber = n;
+
+  // Duration: prefer the float `duration` field when MPD provides it,
+  // else fall back to integer `Time`.
+  if (entry.duration) {
+    var d = parseFloat(entry.duration);
+    if (!isNaN(d)) item.duration = Math.round(d);
+  } else if (entry.Time) {
+    var t = parseInt(entry.Time, 10);
+    if (!isNaN(t)) item.duration = t;
+  }
+
+  // trackType drives Volumio's format badge in the now-playing view.
+  var ext = (entry.file.split('.').pop() || '').toLowerCase();
+  if (/^[a-z0-9]{2,4}$/.test(ext)) item.trackType = ext;
+
+  return item;
+};
+
+function basenameNoExt(filepath) {
+  var name = filepath.split('/').pop();
+  var dot = name.lastIndexOf('.');
+  return dot > 0 ? name.substring(0, dot) : name;
+}
 
 /**
  * Required by the music_service plugin contract.  We deliberately don't

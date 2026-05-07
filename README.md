@@ -1,4 +1,4 @@
-# Recently Added Plugin for Volumio – v0.4.2
+# Recently Added Plugin for Volumio – v0.4.4
 
 > **⚠️ Disclaimer**
 >
@@ -45,6 +45,18 @@ Adds a "Recently Added" entry to Volumio's Browse menu showing albums and artist
 ---
 
 ## Changelog
+
+### v0.4.4
+
+**Documentation only:**
+
+1. **Install instructions updated** to recommend `volumio plugin install`.  This is Volumio's own plugin manager command — invoked from inside the extracted source folder, it copies files into place, runs `install.sh`, and registers the plugin.  No manual folder creation, no manual file copying, and no reboot required.  The previous manual-extraction method is kept as a fallback section for older Volumio versions where the CLI may not work.
+
+### v0.4.3
+
+**New feature:**
+
+1. **Inline play and add-to-queue work on time-window and artist-drill-down rows.**  Previously the play button on rows like *Last 7 days* or an artist tile inside the Artists section appeared but did nothing — the plugin's `explodeUri()` was a stub.  It now expands those URIs into a flat track list and hands it to Volumio's queue.  Tracks are returned in the same order they're displayed: most-recent album first, with disc-aware track ordering within each album (disc 1 tracks 1→N, then disc 2 tracks 1→N — multi-disc albums no longer interleave).  The artist drill-down play button queues only that artist's tracks, including from compilations where they're one contributor among many.  Album play buttons were unaffected — those URIs route to MPD's own controller and have always worked.  Sentinel-style URIs (the root tile, anything we don't own) remain no-ops.
 
 ### v0.4.2
 
@@ -138,33 +150,27 @@ Initial SQLite + watcher implementation.  Works in principle but suffers the syn
 - A populated local music library (the plugin queries MPD, so MPD must have indexed your music — visible in Volumio under Browse → Music Library)
 - SSH enabled in Volumio (Settings → Network → SSH)
 
-### Step-by-step
+### Recommended: install via Volumio's plugin manager
 
 ```bash
-# 1. SSH into your Volumio
+# 1. Transfer the tarball to Volumio (run on your PC, not the Pi)
+scp recently_added-v0.4.4.tar volumio@volumio.local:~/
+
+# 2. SSH into Volumio
 ssh volumio@volumio.local
 # password: volumio
 
-# 2. Create the plugin directory
-mkdir -p /data/plugins/music_service/recently_added
+# 3. Extract the source folder (anywhere works — home directory is fine)
+tar xf recently_added-v0.4.4.tar
+cd recently_added
 
-# 3. Transfer the tarball (run this on your PC, not the Pi)
-scp recently_added-v0.4.2.tar volumio@volumio.local:/tmp/
-
-# 4. Extract on the Pi
-cd /data/plugins/music_service
-tar xf /tmp/recently_added-v0.4.2.tar
-
-# 5. Run the installer
-cd /data/plugins/music_service/recently_added
-chmod +x install.sh uninstall.sh
-bash install.sh
-
-# 6. Reboot to register the plugin
-sudo reboot
+# 4. Install via Volumio's plugin manager
+volumio plugin install
 ```
 
-### After reboot
+The `volumio plugin install` command reads the plugin's metadata, copies files into `/data/plugins/music_service/recently_added/`, runs `install.sh` in the destination, and registers the plugin with Volumio.  No reboot is required.
+
+### After install
 
 1. Open Volumio's web UI
 2. Go to **Plugins → Installed Plugins**
@@ -174,8 +180,34 @@ sudo reboot
 
 Open the Browse tab — a new "Recently Added" tile appears alongside Albums, Artists, etc.
 
-> **Do NOT manually edit plugins.json.** Volumio discovers and registers
-> the plugin automatically when it finds the directory at boot.
+### Alternative: manual install
+
+Use this method only if `volumio plugin install` is unavailable or fails on your Volumio version.
+
+```bash
+# 1. SSH into Volumio
+ssh volumio@volumio.local
+
+# 2. Create the destination folder
+mkdir -p /data/plugins/music_service/recently_added
+
+# 3. Transfer the tarball (run on your PC, not the Pi)
+scp recently_added-v0.4.4.tar volumio@volumio.local:/tmp/
+
+# 4. Extract directly into the plugins directory
+cd /data/plugins/music_service
+tar xf /tmp/recently_added-v0.4.4.tar
+
+# 5. Run the installer manually
+cd /data/plugins/music_service/recently_added
+chmod +x install.sh uninstall.sh
+bash install.sh
+
+# 6. Reboot so Volumio discovers the new plugin folder
+sudo reboot
+```
+
+> When using the manual method, do NOT edit `plugins.json` by hand — Volumio discovers the plugin automatically on boot when it finds the directory.
 
 ---
 
@@ -194,14 +226,15 @@ The four time windows (7 / 14 / 30 / 90 days) are fixed by design.  If you want 
 
 ## Troubleshooting
 
-### Plugin doesn't appear in the UI after reboot
+### Plugin doesn't appear in the UI after install
 
 ```bash
 # Verify the directory structure is correct
 ls /data/plugins/music_service/recently_added/package.json
-# Must exist.  If not, the directory path is wrong.
+# Must exist.  If not, the volumio plugin install step likely failed —
+# re-run from inside the extracted source folder and check its output.
 
-# Check Volumio sees it
+# Check Volumio's plugin registry sees it
 cat /data/configuration/plugins.json | python3 -m json.tool | grep recently
 ```
 
