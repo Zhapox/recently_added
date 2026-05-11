@@ -7,7 +7,13 @@
     "VIEW_MODE_DOC": "Określa, co jest pokazywane po dotknięciu okna czasowego. 'Oba' są wygodne, gdy dodano niewiele nowej muzyki; przełącz na 'Tylko albumy' lub 'Tylko wykonawcy', gdy dodano dużo na raz i chcesz mieć jedną, skupioną listę.",
     "VIEW_ALBUMS": "Tylko albumy",
     "VIEW_ARTISTS": "Tylko wykonawcy",
-    "VIEW_BOTH": "Albumy i wykonawcy"
+    "VIEW_BOTH": "Albumy i wykonawcy",
+    "ALBUMS_SORT": "Sortuj albumy",
+    "ALBUMS_SORT_DOC": "Kolejność albumów w każdej sekcji. Dotyczy sekcji Albumy w widokach okien czasowych oraz listy albumów wewnątrz widoków szczegółowych wykonawcy.",
+    "ARTISTS_SORT": "Sortuj wykonawców",
+    "ARTISTS_SORT_DOC": "Kolejność wykonawców w sekcji Wykonawcy.",
+    "SORT_RECENCY": "Najnowsze pierwsze",
+    "SORT_ALPHABETICAL": "Alfabetycznie"
   },
   "CONNECTION": {
     "TITLE": "Połączenie MPD",

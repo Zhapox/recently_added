@@ -7,7 +7,13 @@
     "VIEW_MODE_DOC": "Scegli cosa mostrare quando tocchi una finestra temporale. 'Entrambi' è comodo quando è stata aggiunta poca musica nuova; passa a 'Solo album' o 'Solo artisti' se hai aggiunto molti brani in una volta sola e vuoi un elenco più mirato.",
     "VIEW_ALBUMS": "Solo album",
     "VIEW_ARTISTS": "Solo artisti",
-    "VIEW_BOTH": "Album e artisti"
+    "VIEW_BOTH": "Album e artisti",
+    "ALBUMS_SORT": "Ordina album",
+    "ALBUMS_SORT_DOC": "Ordine degli album in ciascuna sezione. Si applica alla sezione Album nelle finestre temporali e all'elenco degli album nelle viste di dettaglio degli artisti.",
+    "ARTISTS_SORT": "Ordina artisti",
+    "ARTISTS_SORT_DOC": "Ordine degli artisti nella sezione Artisti.",
+    "SORT_RECENCY": "Più recenti prima",
+    "SORT_ALPHABETICAL": "Alfabetico"
   },
   "CONNECTION": {
     "TITLE": "Connessione MPD",

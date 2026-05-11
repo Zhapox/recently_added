@@ -7,7 +7,13 @@
     "VIEW_MODE_DOC": "Elige qué se muestra al pulsar una ventana de tiempo. 'Ambos' es cómodo cuando se ha añadido poca música nueva; cambia a 'Solo álbumes' o 'Solo artistas' si has añadido muchos archivos a la vez y prefieres una lista más enfocada.",
     "VIEW_ALBUMS": "Solo álbumes",
     "VIEW_ARTISTS": "Solo artistas",
-    "VIEW_BOTH": "Álbumes y artistas"
+    "VIEW_BOTH": "Álbumes y artistas",
+    "ALBUMS_SORT": "Ordenar álbumes",
+    "ALBUMS_SORT_DOC": "Orden de los álbumes en cada sección. Se aplica a la sección Álbumes en las ventanas temporales y a la lista de álbumes dentro de las vistas de detalle de artista.",
+    "ARTISTS_SORT": "Ordenar artistas",
+    "ARTISTS_SORT_DOC": "Orden de los artistas en la sección Artistas.",
+    "SORT_RECENCY": "Más recientes primero",
+    "SORT_ALPHABETICAL": "Alfabético"
   },
   "CONNECTION": {
     "TITLE": "Conexión MPD",

@@ -46,6 +46,11 @@ var ALBUMS_ICON = 'fa fa-music';
 var ARTISTS_ICON = 'fa fa-user';
 var ERROR_ICON = 'fa fa-exclamation-triangle';
 
+// Sentinel used by grouping.artistOf() for tracks lacking both AlbumArtist
+// and Artist tags.  Repeated here so the sort code can pin it to the
+// bottom of alphabetical lists without re-importing the constant.
+var UNKNOWN_ARTIST_KEY = 'Unknown Artist';
+
 // MPD-relative → absolute filesystem path mappings, used for albumart
 // URLs that need a path Volumio's albumart server can dereference.
 // Defaults match Volumio's stock layout; M3 (dynamic discovery from
@@ -342,6 +347,12 @@ ControllerRecentlyAdded.prototype._populateUIConfig = function (uiconf) {
     var viewMode = this._getStr('view_mode', 'both');
     disp.content[0].value = this._findSelectValue(disp.content[0], viewMode);
 
+    var albumsSort = this._getStr('albums_sort', 'recency');
+    disp.content[1].value = this._findSelectValue(disp.content[1], albumsSort);
+
+    var artistsSort = this._getStr('artists_sort', 'recency');
+    disp.content[2].value = this._findSelectValue(disp.content[2], artistsSort);
+
     // Section 1: Connection
     var conn = uiconf.sections[1];
     conn.content[0].value = this._getStr('mpd_host', 'localhost');
@@ -409,7 +420,9 @@ ControllerRecentlyAdded.prototype._persistToManagedConfig = function (data) {
       'mpd_host': 'string',
       'mpd_port': 'number',
       'query_timeout_ms': 'number',
-      'view_mode': 'string'
+      'view_mode': 'string',
+      'albums_sort': 'string',
+      'artists_sort': 'string'
     };
 
     // Start from whatever's on disk so we preserve keys not in this save.
@@ -441,12 +454,15 @@ ControllerRecentlyAdded.prototype._persistToManagedConfig = function (data) {
     if (data.query_timeout_ms !== undefined) {
       snapshot.query_timeout_ms = parseInt(data.query_timeout_ms, 10);
     }
-    // Select element: UI sends { value, label } — extract the value
-    if (data.view_mode !== undefined) {
-      snapshot.view_mode = (typeof data.view_mode === 'object' && data.view_mode !== null)
-        ? data.view_mode.value
-        : String(data.view_mode);
-    }
+    // Select elements: UI sends { value, label } — extract the value.
+    // Same shape for all three.
+    ['view_mode', 'albums_sort', 'artists_sort'].forEach(function (key) {
+      if (data[key] !== undefined) {
+        snapshot[key] = (typeof data[key] === 'object' && data[key] !== null)
+          ? data[key].value
+          : String(data[key]);
+      }
+    });
 
     // Re-wrap into v-conf format for writing
     var vconfData = {};
@@ -660,6 +676,7 @@ ControllerRecentlyAdded.prototype._buildArtistAlbums = function (days, artistNam
     }
 
     var albums = grouping.groupByAlbum(filtered);
+    self._sortAlbums(albums);
     var items = albums.map(function (a) { return self._albumItem(a); });
 
     return {
@@ -681,12 +698,68 @@ ControllerRecentlyAdded.prototype._buildArtistAlbums = function (days, artistNam
 };
 
 /**
- * Build the "Albums" section: group entries by parent directory, sort by
- * most-recent-modification descending.
+ * Sort an array of album buckets in-place per the user's albums_sort
+ * preference.  Mutates the input.
+ *
+ *   'recency'      → most recently modified first (default; also the
+ *                    natural order from grouping.groupByAlbum)
+ *   'alphabetical' → by displayed album title (Album tag, folder
+ *                    fallback), using locale-aware string comparison
+ *
+ * Display titles get memoized on the bucket as `_title` so _albumItem
+ * can reuse the value rather than re-resolve it.  Anything mutating
+ * album buckets between this call and _albumItem must preserve _title.
+ */
+ControllerRecentlyAdded.prototype._sortAlbums = function (albums) {
+  var mode = this._getStr('albums_sort', 'recency');
+
+  if (mode === 'alphabetical') {
+    for (var i = 0; i < albums.length; i++) {
+      var a = albums[i];
+      a._title = grouping.albumTitleOf(a.entries, a.path.split('/').pop());
+    }
+    albums.sort(function (x, y) {
+      return x._title.localeCompare(y._title);
+    });
+  } else {
+    // groupByAlbum already returns recency-desc, but normalize defensively
+    // (and to make this safe to call on a re-ordered list).
+    albums.sort(function (x, y) { return y.modified - x.modified; });
+  }
+};
+
+/**
+ * Sort an array of artist objects in-place per the user's artists_sort
+ * preference.  Mutates the input.
+ *
+ *   'recency'      → most recently active first (any track in window)
+ *   'alphabetical' → by artist name, locale-aware, with the
+ *                    'Unknown Artist' sentinel pinned to the end
+ */
+ControllerRecentlyAdded.prototype._sortArtists = function (artists) {
+  var mode = this._getStr('artists_sort', 'recency');
+
+  if (mode === 'alphabetical') {
+    artists.sort(function (a, b) {
+      var aUnk = (a.name === UNKNOWN_ARTIST_KEY);
+      var bUnk = (b.name === UNKNOWN_ARTIST_KEY);
+      if (aUnk && !bUnk) return 1;
+      if (bUnk && !aUnk) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  } else {
+    artists.sort(function (a, b) { return b.modified - a.modified; });
+  }
+};
+
+/**
+ * Build the "Albums" section: group entries by parent directory, then
+ * sort by user preference (recency-desc by default, alphabetical opt).
  */
 ControllerRecentlyAdded.prototype._albumsSection = function (days, entries) {
   var self = this;
   var albums = grouping.groupByAlbum(entries);
+  self._sortAlbums(albums);
   var items = albums.map(function (a) { return self._albumItem(a); });
 
   return {
@@ -736,7 +809,7 @@ ControllerRecentlyAdded.prototype._artistsSection = function (days, entries) {
   }
 
   var artists = Object.keys(artistMap).map(function (k) { return artistMap[k]; });
-  artists.sort(function (a, b) { return b.modified - a.modified; });
+  self._sortArtists(artists);
 
   var items = artists.map(function (a) {
     var item = {
@@ -793,9 +866,13 @@ ControllerRecentlyAdded.prototype._artistsSection = function (days, entries) {
  * for genuinely-untagged albums don't carry a stray empty column.
  */
 ControllerRecentlyAdded.prototype._albumItem = function (album) {
-  var folderName = album.path.split('/').pop();
   var entries = album.entries || [];
-  var title = grouping.albumTitleOf(entries, folderName);
+  // Reuse the title computed during sort if available; otherwise resolve.
+  var title = album._title;
+  if (title === undefined) {
+    var folderName = album.path.split('/').pop();
+    title = grouping.albumTitleOf(entries, folderName);
+  }
   var artist = grouping.albumArtistOf(entries);  // string or null
 
   var item = {

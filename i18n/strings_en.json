@@ -7,7 +7,13 @@
     "VIEW_MODE_DOC": "Choose what's shown when you tap a time window. 'Both' is convenient when little new music has been added; switch to 'Albums only' or 'Artists only' if you've added a lot at once and want a single, focused list.",
     "VIEW_ALBUMS": "Albums only",
     "VIEW_ARTISTS": "Artists only",
-    "VIEW_BOTH": "Albums and Artists"
+    "VIEW_BOTH": "Albums and Artists",
+    "ALBUMS_SORT": "Albums sort",
+    "ALBUMS_SORT_DOC": "How to order albums within each section. Applies to the Albums section in window views and to the album list inside artist drill-down views.",
+    "ARTISTS_SORT": "Artists sort",
+    "ARTISTS_SORT_DOC": "How to order artists within the Artists section.",
+    "SORT_RECENCY": "Newest first",
+    "SORT_ALPHABETICAL": "Alphabetical"
   },
   "CONNECTION": {
     "TITLE": "MPD Connection",

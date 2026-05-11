@@ -7,7 +7,13 @@
     "VIEW_MODE_DOC": "Legt fest, was beim Antippen eines Zeitfensters angezeigt wird. 'Beide' ist praktisch, wenn nur wenig neue Musik hinzugefügt wurde; wähle 'Nur Alben' oder 'Nur Interpreten', wenn viel auf einmal hinzugekommen ist und du eine fokussierte Liste möchtest.",
     "VIEW_ALBUMS": "Nur Alben",
     "VIEW_ARTISTS": "Nur Interpreten",
-    "VIEW_BOTH": "Alben und Interpreten"
+    "VIEW_BOTH": "Alben und Interpreten",
+    "ALBUMS_SORT": "Alben sortieren",
+    "ALBUMS_SORT_DOC": "Wie Alben innerhalb der Abschnitte angeordnet werden. Gilt für den Alben-Abschnitt in Zeitfenster-Ansichten und für die Albumliste in Interpreten-Detailansichten.",
+    "ARTISTS_SORT": "Interpreten sortieren",
+    "ARTISTS_SORT_DOC": "Wie Interpreten innerhalb des Interpreten-Abschnitts angeordnet werden.",
+    "SORT_RECENCY": "Neueste zuerst",
+    "SORT_ALPHABETICAL": "Alphabetisch"
   },
   "CONNECTION": {
     "TITLE": "MPD-Verbindung",

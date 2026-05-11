@@ -16,7 +16,9 @@
       "saveButton": {
         "label": "TRANSLATE.DISPLAY.SAVE",
         "data": [
-          "view_mode"
+          "view_mode",
+          "albums_sort",
+          "artists_sort"
         ]
       },
       "content": [
@@ -34,6 +36,36 @@
             { "value": "albums",  "label": "TRANSLATE.DISPLAY.VIEW_ALBUMS" },
             { "value": "artists", "label": "TRANSLATE.DISPLAY.VIEW_ARTISTS" },
             { "value": "both",    "label": "TRANSLATE.DISPLAY.VIEW_BOTH" }
+          ]
+        },
+        {
+          "id": "albums_sort",
+          "type": "text",
+          "element": "select",
+          "doc": "TRANSLATE.DISPLAY.ALBUMS_SORT_DOC",
+          "label": "TRANSLATE.DISPLAY.ALBUMS_SORT",
+          "value": {
+            "value": "recency",
+            "label": "TRANSLATE.DISPLAY.SORT_RECENCY"
+          },
+          "options": [
+            { "value": "recency",      "label": "TRANSLATE.DISPLAY.SORT_RECENCY" },
+            { "value": "alphabetical", "label": "TRANSLATE.DISPLAY.SORT_ALPHABETICAL" }
+          ]
+        },
+        {
+          "id": "artists_sort",
+          "type": "text",
+          "element": "select",
+          "doc": "TRANSLATE.DISPLAY.ARTISTS_SORT_DOC",
+          "label": "TRANSLATE.DISPLAY.ARTISTS_SORT",
+          "value": {
+            "value": "recency",
+            "label": "TRANSLATE.DISPLAY.SORT_RECENCY"
+          },
+          "options": [
+            { "value": "recency",      "label": "TRANSLATE.DISPLAY.SORT_RECENCY" },
+            { "value": "alphabetical", "label": "TRANSLATE.DISPLAY.SORT_ALPHABETICAL" }
           ]
         }
       ]

@@ -1,4 +1,4 @@
-# Recently Added Plugin for Volumio – v0.4.4
+# Recently Added Plugin for Volumio – v0.5.0
 
 > **⚠️ Disclaimer**
 >
@@ -45,6 +45,12 @@ Adds a "Recently Added" entry to Volumio's Browse menu showing albums and artist
 ---
 
 ## Changelog
+
+### v0.5.0
+
+**New feature:**
+
+1. **Configurable sort order for albums and artists.**  Two new settings under **Display**: *Albums sort* and *Artists sort*, each offering *Newest first* (default) or *Alphabetical*.  The Albums setting applies to the Albums section in window views and to the album list inside artist drill-downs (so both views stay consistent).  The Artists setting applies to the Artists section.  Alphabetical sort uses locale-aware comparison so diacritics fall in their natural language positions (*ż*, *ü*, *ñ*, *é*).  When sorting artists alphabetically, the *Unknown Artist* placeholder is pinned to the end of the list rather than appearing under "U".  Leading articles ("The", "Der", "Le") are not stripped — sort matches Volumio's stock convention.  Track ordering within an album is unchanged: tracks always play in disc → track-number order.  Translations for all new UI strings are bundled across the seven supported languages.
 
 ### v0.4.4
 
@@ -154,14 +160,14 @@ Initial SQLite + watcher implementation.  Works in principle but suffers the syn
 
 ```bash
 # 1. Transfer the tarball to Volumio (run on your PC, not the Pi)
-scp recently_added-v0.4.4.tar volumio@volumio.local:~/
+scp recently_added-v0.5.0.tar volumio@volumio.local:~/
 
 # 2. SSH into Volumio
 ssh volumio@volumio.local
 # password: volumio
 
 # 3. Extract the source folder (anywhere works — home directory is fine)
-tar xf recently_added-v0.4.4.tar
+tar xf recently_added-v0.5.0.tar
 cd recently_added
 
 # 4. Install via Volumio's plugin manager
@@ -192,11 +198,11 @@ ssh volumio@volumio.local
 mkdir -p /data/plugins/music_service/recently_added
 
 # 3. Transfer the tarball (run on your PC, not the Pi)
-scp recently_added-v0.4.4.tar volumio@volumio.local:/tmp/
+scp recently_added-v0.5.0.tar volumio@volumio.local:/tmp/
 
 # 4. Extract directly into the plugins directory
 cd /data/plugins/music_service
-tar xf /tmp/recently_added-v0.4.4.tar
+tar xf /tmp/recently_added-v0.5.0.tar
 
 # 5. Run the installer manually
 cd /data/plugins/music_service/recently_added
@@ -216,6 +222,8 @@ sudo reboot
 | Setting | Default | Description |
 |---------|---------|-------------|
 | View Mode | Albums and Artists | What to show when tapping a time window: Albums only / Artists only / Both |
+| Albums sort | Newest first | Order of albums within each list: Newest first or Alphabetical (by Album tag, locale-aware). Also applies inside artist drill-downs. |
+| Artists sort | Newest first | Order of artists within the Artists section: Newest first or Alphabetical. *Unknown Artist* sorts to the end in Alphabetical mode. |
 | MPD Host | localhost | Hostname or IP of the MPD server (use `localhost` for Volumio's local MPD) |
 | MPD Port | 6600 | TCP port of the MPD server (Volumio default) |
 | Query Timeout | 10000 ms | Max wait for an MPD `find` query before giving up — increase for very large libraries |
